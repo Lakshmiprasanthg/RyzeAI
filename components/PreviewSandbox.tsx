@@ -2,6 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import * as Babel from '@babel/standalone';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
+import Input from '@/components/ui/Input';
+import Table from '@/components/ui/Table';
+import Modal from '@/components/ui/Modal';
+import Sidebar from '@/components/ui/Sidebar';
+import Navbar from '@/components/ui/Navbar';
+import Chart from '@/components/ui/Chart';
 
 interface PreviewSandboxProps {
   code: string;
@@ -42,27 +50,17 @@ const PreviewSandbox: React.FC<PreviewSandboxProps> = ({ code }) => {
         `
       );
 
-      // Import components dynamically
-      const ButtonModule = require('@/components/ui/Button').default;
-      const CardModule = require('@/components/ui/Card').default;
-      const InputModule = require('@/components/ui/Input').default;
-      const TableModule = require('@/components/ui/Table').default;
-      const ModalModule = require('@/components/ui/Modal').default;
-      const SidebarModule = require('@/components/ui/Sidebar').default;
-      const NavbarModule = require('@/components/ui/Navbar').default;
-      const ChartModule = require('@/components/ui/Chart').default;
-
-      // Execute the code
+      // Execute the code with imported components
       const GeneratedComponent = evalCode(
         React,
-        ButtonModule,
-        CardModule,
-        InputModule,
-        TableModule,
-        ModalModule,
-        SidebarModule,
-        NavbarModule,
-        ChartModule
+        Button,
+        Card,
+        Input,
+        Table,
+        Modal,
+        Sidebar,
+        Navbar,
+        Chart
       );
 
       setComponent(() => GeneratedComponent);
