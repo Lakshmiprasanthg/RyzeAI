@@ -14,6 +14,44 @@ export function validateGeneratedCode(code: string): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
+  // Check that code has the required wrapper function
+  if (!code.includes('export default function GeneratedUI')) {
+    errors.push('Code must have: export default function GeneratedUI() { return (...) }');
+  }
+
+  // Extract the function body (everything after the function declaration)
+  const functionMatch = code.match(/export default function GeneratedUI\s*\(\s*\)\s*\{([\s\S]*)\}/);
+  
+  if (functionMatch) {
+    const functionBody = functionMatch[1];
+
+    // Check for prohibited patterns inside the function body
+    if (functionBody.includes('useState') || functionBody.includes('useEffect') || functionBody.includes('useCallback') || functionBody.includes('useMemo') || functionBody.includes('useRef')) {
+      errors.push('React hooks are prohibited inside the component. Only static JSX is allowed.');
+    }
+
+    if (functionBody.includes('=>') || functionBody.includes('function ')) {
+      errors.push('Functions and arrow functions are prohibited inside the component. Only static JSX is allowed.');
+    }
+
+    if (functionBody.includes('onClick') || functionBody.includes('onChange') || functionBody.includes('onSubmit') || functionBody.includes('onFocus') || functionBody.includes('onBlur')) {
+      errors.push('Event handlers are prohibited. Only static JSX is allowed.');
+    }
+
+    if (functionBody.includes('const ') || functionBody.includes('let ') || functionBody.includes('var ')) {
+      errors.push('Variable declarations are prohibited inside the component. Only static JSX is allowed.');
+    }
+
+    if (functionBody.includes('console.')) {
+      errors.push('Console statements are prohibited. Only static JSX is allowed.');
+    }
+  }
+
+  // Check for prohibited React import
+  if (code.includes('import React') || code.includes("import * as React")) {
+    errors.push('Importing React is prohibited. Only import UI components.');
+  }
+
   // Check for prohibited inline styles
   if (code.includes('style={{') || code.includes('style: {')) {
     errors.push('Inline styles are prohibited. Use only the fixed component library with predefined styling.');

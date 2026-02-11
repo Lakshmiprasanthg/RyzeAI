@@ -27,6 +27,23 @@ const PreviewSandbox: React.FC<PreviewSandboxProps> = ({ code }) => {
     }
 
     try {
+      // Validate code format
+      if (!code.includes('export default function GeneratedUI')) {
+        throw new Error('Generated code must have: export default function GeneratedUI() { return (...) }');
+      }
+
+      // Validate code doesn't contain prohibited patterns inside the function
+      const functionMatch = code.match(/export default function GeneratedUI\s*\(\s*\)\s*\{([\s\S]*)\}/);
+      if (functionMatch) {
+        const functionBody = functionMatch[1];
+        if (functionBody.includes('useState') || functionBody.includes('useEffect') || 
+            functionBody.includes('=>') || functionBody.includes('const ') || 
+            functionBody.includes('let ') || functionBody.includes('var ') ||
+            functionBody.includes('function ')) {
+          throw new Error('Generated code contains prohibited patterns (hooks/handlers/variables). Code must be static JSX only.');
+        }
+      }
+
       // Transform the code using Babel
       const transformed = Babel.transform(code, {
         presets: ['react', 'typescript'],
@@ -34,6 +51,7 @@ const PreviewSandbox: React.FC<PreviewSandboxProps> = ({ code }) => {
       }).code;
 
       // Create a function to evaluate the code
+      // Provide React and all components in scope
       const evalCode = new Function(
         'React',
         'Button',
