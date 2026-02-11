@@ -33,7 +33,7 @@ const Chart: React.FC<ChartProps> = ({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
       )}
       <ResponsiveContainer width="100%" height={height}>
-        {type === 'bar' && (
+        {type === 'bar' ? (
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
@@ -42,9 +42,7 @@ const Chart: React.FC<ChartProps> = ({
             <Legend />
             <Bar dataKey="value" fill={color} />
           </BarChart>
-        )}
-        
-        {type === 'line' && (
+        ) : type === 'line' ? (
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" />
@@ -53,9 +51,7 @@ const Chart: React.FC<ChartProps> = ({
             <Legend />
             <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} />
           </LineChart>
-        )}
-        
-        {type === 'pie' && (
+        ) : (
           <PieChart>
             <Pie
               data={chartData}

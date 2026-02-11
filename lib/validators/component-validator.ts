@@ -39,15 +39,15 @@ export function validateGeneratedCode(code: string): ValidationResult {
 
   // Validate that only allowed components are used
   const componentPattern = /<(\w+)[\s>]/g;
-  const matches = code.matchAll(componentPattern);
+  const matchesArray = Array.from(code.matchAll(componentPattern));
   
-  for (const match of matches) {
+  for (const match of matchesArray) {
     const componentName = match[1];
     // Skip HTML elements (lowercase)
     if (componentName === componentName.toLowerCase()) continue;
     
     // Check if it's in whitelist
-    if (!ALLOWED_COMPONENTS.includes(componentName as any)) {
+    if (!(ALLOWED_COMPONENTS as readonly string[]).includes(componentName)) {
       errors.push(`Component '${componentName}' is not in the allowed component list. Only ${ALLOWED_COMPONENTS.join(', ')} are permitted.`);
     }
   }
@@ -82,7 +82,7 @@ export function validateComponentProps(componentName: string, props: Record<stri
 
   // Check for invalid props
   Object.keys(props).forEach(prop => {
-    if (!schema.props.includes(prop)) {
+    if (!(schema.props as readonly string[]).includes(prop)) {
       warnings.push(`Prop '${prop}' is not a valid prop for component '${componentName}'.`);
     }
   });
