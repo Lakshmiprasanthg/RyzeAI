@@ -1,0 +1,126 @@
+import { ALLOWED_COMPONENTS, COMPONENT_SCHEMAS } from '../component-whitelist';
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Validates generated code against component whitelist
+ * Ensures no prohibited patterns exist
+ */
+export function validateGeneratedCode(code: string): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Check for prohibited inline styles
+  if (code.includes('style={{') || code.includes('style: {')) {
+    errors.push('Inline styles are prohibited. Use only the fixed component library with predefined styling.');
+  }
+
+  // Check for prohibited CSS generation
+  if (code.includes('className={`') && code.match(/\$\{[^}]*\}/)) {
+    warnings.push('Dynamic className generation detected. Ensure only fixed Tailwind classes from components are used.');
+  }
+
+  // Check for attempts to create new components
+  if (code.match(/const\s+\w+Component\s*=/i) || code.match(/function\s+\w+Component\s*\(/i)) {
+    errors.push('Creating new components is prohibited. Use only the allowed component library.');
+  }
+
+  // Check for external UI library imports
+  const prohibitedImports = ['@mui', '@chakra', 'antd', 'react-bootstrap', 'semantic-ui'];
+  prohibitedImports.forEach(lib => {
+    if (code.includes(`from '${lib}`) || code.includes(`from "${lib}`)) {
+      errors.push(`External UI library '${lib}' is prohibited. Use only the fixed component library.`);
+    }
+  });
+
+  // Validate that only allowed components are used
+  const componentPattern = /<(\w+)[\s>]/g;
+  const matches = code.matchAll(componentPattern);
+  
+  for (const match of matches) {
+    const componentName = match[1];
+    // Skip HTML elements (lowercase)
+    if (componentName === componentName.toLowerCase()) continue;
+    
+    // Check if it's in whitelist
+    if (!ALLOWED_COMPONENTS.includes(componentName as any)) {
+      errors.push(`Component '${componentName}' is not in the allowed component list. Only ${ALLOWED_COMPONENTS.join(', ')} are permitted.`);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Validates component props against schema
+ */
+export function validateComponentProps(componentName: string, props: Record<string, any>): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const schema = COMPONENT_SCHEMAS[componentName as keyof typeof COMPONENT_SCHEMAS];
+  
+  if (!schema) {
+    errors.push(`Component '${componentName}' not found in schema.`);
+    return { isValid: false, errors, warnings };
+  }
+
+  // Check required props
+  schema.required.forEach(requiredProp => {
+    if (!(requiredProp in props)) {
+      errors.push(`Required prop '${requiredProp}' missing for component '${componentName}'.`);
+    }
+  });
+
+  // Check for invalid props
+  Object.keys(props).forEach(prop => {
+    if (!schema.props.includes(prop)) {
+      warnings.push(`Prop '${prop}' is not a valid prop for component '${componentName}'.`);
+    }
+  });
+
+  // Validate variant values
+  Object.entries(schema.variants).forEach(([variantProp, allowedValues]) => {
+    if (props[variantProp] && !allowedValues.includes(props[variantProp])) {
+      errors.push(`Invalid value '${props[variantProp]}' for prop '${variantProp}' in component '${componentName}'. Allowed values: ${allowedValues.join(', ')}`);
+    }
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+/**
+ * Sanitizes user input to prevent prompt injection
+ */
+export function sanitizeUserInput(input: string): string {
+  // Remove potential prompt injection patterns
+  let sanitized = input;
+  
+  // Remove system/instruction manipulation attempts
+  const dangerousPatterns = [
+    /ignore\s+(all\s+)?previous\s+instructions?/gi,
+    /disregard\s+(all\s+)?previous\s+instructions?/gi,
+    /forget\s+(all\s+)?previous\s+instructions?/gi,
+    /system\s*:/gi,
+    /assistant\s*:/gi,
+    /<\|.*?\|>/g,
+  ];
+  
+  dangerousPatterns.forEach(pattern => {
+    sanitized = sanitized.replace(pattern, '[FILTERED]');
+  });
+  
+  return sanitized;
+}
