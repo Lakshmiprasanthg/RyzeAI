@@ -29,7 +29,7 @@ export async function callGemini(
 ): Promise<GeminiResponse> {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3-flash-preview',
       systemInstruction: systemInstruction,
       generationConfig: {
         temperature,
@@ -65,7 +65,7 @@ export async function callGeminiWithHistory(
 ): Promise<GeminiResponse> {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-3-flash-preview',
       systemInstruction: systemInstruction,
       generationConfig: {
         temperature,
