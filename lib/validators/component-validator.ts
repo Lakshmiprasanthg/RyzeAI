@@ -37,14 +37,16 @@ export function validateGeneratedCode(code: string): ValidationResult {
     }
   });
 
-  // Validate that only allowed components are used
-  const componentPattern = /<(\w+)[\s>]/g;
+  // Validate that only allowed components are used in JSX
+  // Match JSX opening tags: <ComponentName or <ComponentName>
+  const componentPattern = /<([A-Z]\w+)(?:\s|>|\/)/g;
   const matchesArray = Array.from(code.matchAll(componentPattern));
   
   for (const match of matchesArray) {
     const componentName = match[1];
-    // Skip HTML elements (lowercase)
-    if (componentName === componentName.toLowerCase()) continue;
+    
+    // Skip React fragments and common React types
+    if (componentName === 'Fragment' || componentName === 'React') continue;
     
     // Check if it's in whitelist
     if (!(ALLOWED_COMPONENTS as readonly string[]).includes(componentName)) {
