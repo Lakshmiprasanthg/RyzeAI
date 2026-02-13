@@ -4,7 +4,6 @@ export interface InputProps {
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
   placeholder?: string;
   value?: string;
-  onChange?: (value: string) => void;
   label?: string;
   error?: string;
   disabled?: boolean;
@@ -16,13 +15,16 @@ const Input: React.FC<InputProps> = ({
   type = 'text',
   placeholder,
   value,
-  onChange,
   label,
   error,
   disabled = false,
   fullWidth = false,
   size = 'md',
 }) => {
+  // Ensure size is valid
+  const safeSize: 'sm' | 'md' | 'lg' = 
+    ['sm', 'md', 'lg'].includes(size as string) ? size : 'md';
+  
   const baseClasses = 'border rounded-lg focus:outline-none focus:ring-2 transition-colors duration-200';
   
   const sizeClasses = {
@@ -48,9 +50,9 @@ const Input: React.FC<InputProps> = ({
         type={type}
         placeholder={placeholder}
         value={value}
-        onChange={(e) => onChange?.(e.target.value)}
         disabled={disabled}
-        className={`${baseClasses} ${sizeClasses[size]} ${stateClasses} ${widthClass} ${
+        readOnly
+        className={`${baseClasses} ${sizeClasses[safeSize]} ${stateClasses} ${widthClass} ${
           disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
         }`}
       />

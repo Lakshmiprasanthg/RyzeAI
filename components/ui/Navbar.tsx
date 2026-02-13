@@ -4,7 +4,6 @@ export interface NavbarProps {
   brand?: React.ReactNode;
   items?: Array<{
     label: string;
-    onClick?: () => void;
     active?: boolean;
   }>;
   actions?: React.ReactNode;
@@ -17,6 +16,9 @@ const Navbar: React.FC<NavbarProps> = ({
   actions,
   variant = 'light',
 }) => {
+  // Ensure variant is valid
+  const safeVariant: 'light' | 'dark' = (variant === 'light' || variant === 'dark') ? variant : 'light';
+  
   const variantClasses = {
     light: 'bg-white border-b border-gray-200 text-gray-900',
     dark: 'bg-gray-900 border-b border-gray-700 text-white',
@@ -34,7 +36,7 @@ const Navbar: React.FC<NavbarProps> = ({
   };
   
   return (
-    <nav className={`${variantClasses[variant]} px-6 py-4`}>
+    <nav className={`${variantClasses[safeVariant]} px-6 py-4`}>
       <div className="flex items-center justify-between">
         {/* Brand */}
         {brand && (
@@ -46,20 +48,19 @@ const Navbar: React.FC<NavbarProps> = ({
         {/* Navigation Items */}
         {items.length > 0 && (
           <div className="flex space-x-6 flex-1 justify-center">
-            {items.map((item, index) => (
-              <button
-                key={index}
-                onClick={item.onClick}
+            {items.map((item) => (
+              <span
+                key={item.label}
                 className={`
                   px-3 py-2 rounded-md text-sm transition-colors duration-200
                   ${item.active
-                    ? itemClasses[variant].active
-                    : itemClasses[variant].default
+                    ? itemClasses[safeVariant].active
+                    : itemClasses[safeVariant].default
                   }
                 `}
               >
                 {item.label}
-              </button>
+              </span>
             ))}
           </div>
         )}

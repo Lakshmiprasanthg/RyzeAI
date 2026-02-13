@@ -4,7 +4,6 @@ export interface ButtonProps {
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'outline' | 'danger';
   size?: 'sm' | 'md' | 'lg';
-  onClick?: () => void;
   disabled?: boolean;
   fullWidth?: boolean;
 }
@@ -13,10 +12,15 @@ const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',
   size = 'md',
-  onClick,
   disabled = false,
   fullWidth = false,
 }) => {
+  // Ensure variant and size are valid
+  const safeVariant: 'primary' | 'secondary' | 'outline' | 'danger' = 
+    ['primary', 'secondary', 'outline', 'danger'].includes(variant as string) ? variant : 'primary';
+  const safeSize: 'sm' | 'md' | 'lg' = 
+    ['sm', 'md', 'lg'].includes(size as string) ? size : 'md';
+  
   const baseClasses = 'font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
   
   const variantClasses = {
@@ -36,9 +40,8 @@ const Button: React.FC<ButtonProps> = ({
   
   return (
     <button
-      onClick={onClick}
       disabled={disabled}
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+      className={`${baseClasses} ${variantClasses[safeVariant]} ${sizeClasses[safeSize]} ${widthClass} ${disabled ? 'cursor-not-allowed' : 'cursor-default'}`}
     >
       {children}
     </button>

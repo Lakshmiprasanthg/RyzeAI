@@ -30,9 +30,9 @@ const Table: React.FC<TableProps> = ({
       <table className={`min-w-full divide-y divide-gray-200 ${bordered ? 'border border-gray-200' : ''}`}>
         <thead className="bg-gray-50">
           <tr>
-            {columns.map((column) => (
+            {columns.map((column, columnIndex) => (
               <th
-                key={column.key}
+                key={column.key || column.header || `col-${columnIndex}`}
                 style={{ width: column.width }}
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
@@ -44,15 +44,15 @@ const Table: React.FC<TableProps> = ({
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((row, rowIndex) => (
             <tr
-              key={rowIndex}
+              key={(row as any).id || `row-${rowIndex}`}
               className={`
                 ${striped && rowIndex % 2 === 1 ? 'bg-gray-50' : ''}
                 ${hoverable ? 'hover:bg-gray-100 transition-colors duration-150' : ''}
               `}
             >
-              {columns.map((column) => (
+              {columns.map((column, columnIndex) => (
                 <td
-                  key={column.key}
+                  key={`${rowIndex}-${column.key || column.header || columnIndex}`}
                   className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                 >
                   {row[column.key]}

@@ -15,6 +15,12 @@ const Card: React.FC<CardProps> = ({
   variant = 'default',
   padding = 'md',
 }) => {
+  // Ensure variant and padding are valid
+  const safeVariant: 'default' | 'bordered' | 'elevated' = 
+    ['default', 'bordered', 'elevated'].includes(variant as string) ? variant : 'default';
+  const safePadding: 'none' | 'sm' | 'md' | 'lg' = 
+    ['none', 'sm', 'md', 'lg'].includes(padding as string) ? padding : 'md';
+  
   const baseClasses = 'rounded-lg bg-white';
   
   const variantClasses = {
@@ -31,7 +37,7 @@ const Card: React.FC<CardProps> = ({
   };
   
   return (
-    <div className={`${baseClasses} ${variantClasses[variant]} ${paddingClasses[padding]}`}>
+    <div className={`${baseClasses} ${variantClasses[safeVariant]} ${paddingClasses[safePadding]}`}>
       {(title || subtitle) && (
         <div className="mb-4">
           {title && <h3 className="text-xl font-bold text-gray-900">{title}</h3>}

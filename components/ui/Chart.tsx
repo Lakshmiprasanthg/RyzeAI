@@ -63,8 +63,8 @@ const Chart: React.FC<ChartProps> = ({
               fill={color}
               dataKey="value"
             >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              {chartData.map((entry) => (
+                <Cell key={`cell-${entry.name}`} fill={COLORS[chartData.indexOf(entry) % COLORS.length]} />
               ))}
             </Pie>
             <Tooltip />
