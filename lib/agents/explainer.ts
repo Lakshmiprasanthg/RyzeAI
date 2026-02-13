@@ -1,4 +1,4 @@
-import { callGemini } from '../gemini-client';
+import { callGroq } from '../groq-client';
 import { PlannerOutput } from './planner';
 
 export interface ExplanationOutput {
@@ -81,7 +81,7 @@ export async function executeExplainer(
   try {
     const prompt = EXPLAINER_PROMPT_TEMPLATE(plan, isModification, modificationRequest);
     
-    const response = await callGemini(
+    const response = await callGroq(
       prompt,
       EXPLAINER_SYSTEM_INSTRUCTION,
       0.6 // Moderate temperature for natural explanations
