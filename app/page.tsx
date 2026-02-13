@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ChatPanel from '@/components/ChatPanel';
 import CodeEditor from '@/components/CodeEditor';
 import PreviewSandbox from '@/components/PreviewSandbox';
 import ExplanationPanel from '@/components/ExplanationPanel';
 import VersionHistory from '@/components/VersionHistory';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import PlannerPanel from '@/components/PlannerPanel';
 import { ExplanationOutput } from '@/lib/agents/explainer';
+import { PlannerOutput } from '@/lib/agents/planner';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -15,12 +17,44 @@ interface Message {
   timestamp: number;
 }
 
+interface StoredVersion {
+  id: string;
+  timestamp: number;
+  userIntent: string;
+  plan: PlannerOutput;
+  code: string;
+  explanation?: ExplanationOutput;
+}
+
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentCode, setCurrentCode] = useState<string>('');
+  const [currentPlan, setCurrentPlan] = useState<PlannerOutput | undefined>();
   const [currentExplanation, setCurrentExplanation] = useState<ExplanationOutput | undefined>();
   const [currentVersionId, setCurrentVersionId] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
+  const [versionHistory, setVersionHistory] = useState<StoredVersion[]>([]);
+
+  // Load versions from localStorage on mount (but don't auto-load latest)
+  useEffect(() => {
+    const saved = localStorage.getItem('ryzeai-versions');
+    if (saved) {
+      try {
+        const versions = JSON.parse(saved);
+        setVersionHistory(versions);
+        // Don't auto-load latest - start fresh
+      } catch (e) {
+        console.error('Failed to load versions:', e);
+      }
+    }
+  }, []);
+
+  // Save to localStorage whenever versions change
+  useEffect(() => {
+    if (versionHistory.length > 0) {
+      localStorage.setItem('ryzeai-versions', JSON.stringify(versionHistory));
+    }
+  }, [versionHistory]);
 
   const handleSendMessage = async (userMessage: string) => {
     // Add user message
@@ -33,35 +67,43 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Determine if this is a modification or new generation
-      const isModification = currentCode.length > 0;
-      const endpoint = isModification ? '/api/modify' : '/api/generate';
-
-      const response = await fetch(endpoint, {
+      // Always use generate - simpler and no 404 errors
+      const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           userIntent: userMessage,
-          currentVersionId: currentVersionId,
         }),
       });
 
       const data = await response.json();
 
       if (data.success) {
-        // Update code and explanation
-        setCurrentCode(data.version.code);
-        setCurrentExplanation(data.version.explanation);
-        setCurrentVersionId(data.version.id);
+        // Create new version
+        const newVersion: StoredVersion = {
+          id: `v_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          timestamp: Date.now(),
+          userIntent: userMessage,
+          plan: data.version.plan,
+          code: data.version.code,
+          explanation: data.version.explanation,
+        };
 
-        // Add assistant message
+        // Add to history
+        setVersionHistory(prev => [...prev, newVersion]);
+        
+        // Update current state
+        setCurrentCode(newVersion.code);
+        setCurrentPlan(newVersion.plan);
+        setCurrentExplanation(newVersion.explanation);
+        setCurrentVersionId(newVersion.id);
+
+        // Add success message
         const assistantMsg: Message = {
           role: 'assistant',
-          content: isModification
-            ? `I've modified the UI based on your request. ${data.version.explanation?.summary || ''}`
-            : `I've generated your UI. ${data.version.explanation?.summary || ''}`,
+          content: `✅ ${data.version.explanation?.summary || 'UI generated successfully'}`,
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMsg]);
@@ -97,34 +139,30 @@ export default function Home() {
     }
   };
 
-  const handleRollback = async (versionId: string) => {
-    try {
-      const response = await fetch('/api/rollback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ versionId }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setCurrentCode(data.version.code);
-        setCurrentExplanation(data.version.explanation);
-        setCurrentVersionId(data.version.id);
-
-        // Add system message
-        const systemMsg: Message = {
-          role: 'assistant',
-          content: '⏮️ Rolled back to previous version',
-          timestamp: Date.now(),
-        };
-        setMessages(prev => [...prev, systemMsg]);
-      }
-    } catch (error) {
-      console.error('Rollback failed:', error);
+  const handleRollback = (versionId: string) => {
+    const version = versionHistory.find(v => v.id === versionId);
+    if (!version) {
+      alert('Version not found');
+      return;
     }
+
+    // Remove all versions after this one
+    const index = versionHistory.findIndex(v => v.id === versionId);
+    const newHistory = versionHistory.slice(0, index + 1);
+    
+    setVersionHistory(newHistory);
+    setCurrentCode(version.code);
+    setCurrentPlan(version.plan);
+    setCurrentExplanation(version.explanation);
+    setCurrentVersionId(version.id);
+
+    // Add system message
+    const systemMsg: Message = {
+      role: 'assistant',
+      content: '⏮️ Rolled back to previous version',
+      timestamp: Date.now(),
+    };
+    setMessages(prev => [...prev, systemMsg]);
   };
 
   const handleRegenerate = async () => {
@@ -169,32 +207,44 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content - 3 Panel Layout */}
+      {/* Main Content - 4 Panel Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Chat */}
-        <div className="w-1/4 min-w-[300px] flex flex-col">
-          <ChatPanel
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            messages={messages}
-          />
-          <VersionHistory
-            currentVersionId={currentVersionId}
-            onRollback={handleRollback}
-          />
+        <div className="w-1/5 min-w-[280px] flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <ChatPanel
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              messages={messages}
+            />
+          </div>
+          <div className="flex-shrink-0">
+            <VersionHistory
+              versions={versionHistory}
+              currentVersionId={currentVersionId}
+              onRollback={handleRollback}
+            />
+          </div>
         </div>
 
-        {/* Middle Panel - Code Editor */}
-        <div className="w-1/3 min-w-[400px]">
+        {/* Planner Panel - Structured Output */}
+        <div className="w-1/5 min-w-[280px]">
+          <PlannerPanel plan={currentPlan} />
+        </div>
+
+        {/* Code Editor Panel */}
+        <div className="w-1/4 min-w-[320px]">
           <CodeEditor code={currentCode} readOnly={true} />
         </div>
 
         {/* Right Panel - Preview */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
             <PreviewSandbox code={currentCode} />
           </div>
-          <ExplanationPanel explanation={currentExplanation} />
+          <div className="flex-shrink-0 max-h-64 overflow-y-auto">
+            <ExplanationPanel explanation={currentExplanation} />
+          </div>
         </div>
       </div>
 
@@ -203,11 +253,11 @@ export default function Home() {
         <div className="flex items-center justify-between text-xs text-gray-600">
           <div className="flex items-center space-x-4">
             <span>
-              <strong>Components:</strong> Button, Card, Input, Table, Modal, Sidebar, Navbar, Chart
+              <strong>Components:</strong> Button, Card, Input, Table, Modal, Sidebar, Navbar, Chart, Stack, Center, Container
             </span>
           </div>
           <div>
-            <span>Powered by Gemini 1.5 Pro</span>
+            <span><strong>Panels:</strong> Chat | Planner | Code | Preview | Powered by Groq</span>
           </div>
         </div>
       </footer>
