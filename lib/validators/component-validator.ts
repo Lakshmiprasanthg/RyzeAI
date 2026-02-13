@@ -45,6 +45,16 @@ export function validateGeneratedCode(code: string): ValidationResult {
     if (functionBody.includes('console.')) {
       errors.push('Console statements are prohibited. Only static JSX is allowed.');
     }
+
+    if (functionBody.includes('.map(') || functionBody.includes('.filter(') || functionBody.includes('.reduce(')) {
+      errors.push('Array iteration methods (.map, .filter, .reduce) are prohibited. Write JSX components individually.');
+    }
+
+    // Check for JSX arrays like {[<Component/>, <Component/>]} (more precise pattern)
+    // This looks for {[ immediately followed by a JSX tag, not prop arrays like items={[{...}]}
+    if (functionBody.match(/\{\[\s*<[A-Z]/)) {
+      errors.push('JSX arrays are prohibited. Write components sequentially: <Stack><Button/><Button/></Stack>');
+    }
   }
 
   // Check for prohibited React import
@@ -55,6 +65,16 @@ export function validateGeneratedCode(code: string): ValidationResult {
   // Check for prohibited inline styles
   if (code.includes('style={{') || code.includes('style: {')) {
     errors.push('Inline styles are prohibited. Use only the fixed component library with predefined styling.');
+  }
+
+  // Check for prohibited div usage
+  if (code.includes('<div')) {
+    errors.push('Using <div> is prohibited. Use layout components (Stack, Center, Container) instead.');
+  }
+
+  // Check for prohibited className on non-component elements
+  if (code.match(/<\w+\s+className=/)) {
+    warnings.push('Avoid using className directly. Use component props instead.');
   }
 
   // Check for prohibited CSS generation
