@@ -48,7 +48,7 @@ const ExplanationPanel: React.FC<ExplanationPanelProps> = ({ explanation }) => {
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-gray-600 uppercase">Design Decisions</h4>
               {explanation.decisions.map((decision, index) => (
-                <div key={index} className="bg-white rounded-lg p-3">
+                <div key={`decision-${index}-${decision.decision}`} className="bg-white rounded-lg p-3">
                   <p className="text-sm font-medium text-gray-900 mb-1">{decision.decision}</p>
                   <p className="text-xs text-gray-600">{decision.reasoning}</p>
                 </div>
@@ -63,7 +63,7 @@ const ExplanationPanel: React.FC<ExplanationPanelProps> = ({ explanation }) => {
               <div className="flex flex-wrap gap-2">
                 {explanation.componentsUsed.map((component, index) => (
                   <span
-                    key={index}
+                    key={`component-${component}-${index}`}
                     className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded"
                   >
                     {component}

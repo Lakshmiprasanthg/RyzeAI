@@ -10,6 +10,9 @@ import Modal from '@/components/ui/Modal';
 import Sidebar from '@/components/ui/Sidebar';
 import Navbar from '@/components/ui/Navbar';
 import Chart from '@/components/ui/Chart';
+import Stack from '@/components/ui/Stack';
+import Center from '@/components/ui/Center';
+import Container from '@/components/ui/Container';
 
 interface PreviewSandboxProps {
   code: string;
@@ -44,8 +47,19 @@ const PreviewSandbox: React.FC<PreviewSandboxProps> = ({ code }) => {
         }
       }
 
+      // Remove all import statements since components are provided as parameters
+      const codeWithoutImports = code
+        .split('\n')
+        .filter(line => !line.trim().startsWith('import '))
+        .join('\n');
+
+      // Remove export default and keep just the function
+      const functionCode = codeWithoutImports
+        .replace(/export default function GeneratedUI/, 'function GeneratedUI')
+        .trim();
+
       // Transform the code using Babel
-      const transformed = Babel.transform(code, {
+      const transformed = Babel.transform(functionCode, {
         presets: ['react', 'typescript'],
         filename: 'GeneratedUI.tsx',
       }).code;
@@ -62,6 +76,9 @@ const PreviewSandbox: React.FC<PreviewSandboxProps> = ({ code }) => {
         'Sidebar',
         'Navbar',
         'Chart',
+        'Stack',
+        'Center',
+        'Container',
         `
         ${transformed}
         return GeneratedUI;
@@ -78,7 +95,10 @@ const PreviewSandbox: React.FC<PreviewSandboxProps> = ({ code }) => {
         Modal,
         Sidebar,
         Navbar,
-        Chart
+        Chart,
+        Stack,
+        Center,
+        Container
       );
 
       setComponent(() => GeneratedComponent);

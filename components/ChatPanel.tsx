@@ -54,9 +54,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onSendMessage, isLoading, message
           </div>
         )}
         
-        {messages.map((message, index) => (
+        {messages.map((message) => (
           <div
-            key={index}
+            key={message.timestamp}
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
