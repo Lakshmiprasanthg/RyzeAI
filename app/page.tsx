@@ -165,6 +165,36 @@ export default function Home() {
     setMessages(prev => [...prev, systemMsg]);
   };
 
+  const handleDeleteVersion = (versionId: string) => {
+    // Filter out the deleted version
+    const newHistory = versionHistory.filter(v => v.id !== versionId);
+    setVersionHistory(newHistory);
+
+    // If we deleted the current version, reset current state
+    if (versionId === currentVersionId) {
+      setCurrentCode('');
+      setCurrentPlan(undefined);
+      setCurrentExplanation(undefined);
+      setCurrentVersionId(undefined);
+
+      // Add system message
+      const systemMsg: Message = {
+        role: 'assistant',
+        content: '🗑️ Deleted current version',
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, systemMsg]);
+    } else {
+      // Add system message
+      const systemMsg: Message = {
+        role: 'assistant',
+        content: '🗑️ Version deleted',
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, systemMsg]);
+    }
+  };
+
   const handleRegenerate = async () => {
     if (messages.length === 0) return;
 
@@ -223,6 +253,7 @@ export default function Home() {
               versions={versionHistory}
               currentVersionId={currentVersionId}
               onRollback={handleRollback}
+              onDelete={handleDeleteVersion}
             />
           </div>
         </div>

@@ -12,9 +12,10 @@ interface VersionHistoryProps {
   versions: VersionHistoryItem[];
   currentVersionId?: string;
   onRollback: (versionId: string) => void;
+  onDelete: (versionId: string) => void;
 }
 
-const VersionHistory: React.FC<VersionHistoryProps> = ({ versions, currentVersionId, onRollback }) => {
+const VersionHistory: React.FC<VersionHistoryProps> = ({ versions, currentVersionId, onRollback, onDelete }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -22,6 +23,15 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({ versions, currentVersio
     if (confirm('Rollback to this version?')) {
       setIsLoading(true);
       onRollback(versionId);
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = (versionId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (confirm('Delete this version? This cannot be undone.')) {
+      setIsLoading(true);
+      onDelete(versionId);
       setIsLoading(false);
     }
   };
@@ -75,15 +85,26 @@ const VersionHistory: React.FC<VersionHistoryProps> = ({ versions, currentVersio
                     <p className="text-xs text-gray-600 truncate">{item.userIntent}</p>
                   </div>
                   
-                  {item.id !== currentVersionId && (
+                  <div className="flex items-center gap-1 ml-2">
+                    {item.id !== currentVersionId && (
+                      <button
+                        onClick={() => handleRollback(item.id)}
+                        disabled={isLoading}
+                        className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 disabled:bg-gray-300"
+                        title="Rollback to this version"
+                      >
+                        ↩
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleRollback(item.id)}
+                      onClick={(e) => handleDelete(item.id, e)}
                       disabled={isLoading}
-                      className="ml-2 px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 disabled:bg-gray-300"
+                      className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:bg-gray-300"
+                      title="Delete this version"
                     >
-                      ↩
+                      🗑️
                     </button>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
