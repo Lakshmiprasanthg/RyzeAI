@@ -43,6 +43,12 @@ Before you begin, ensure you have:
    ```bash
    GROQ_API_KEY=your_groq_api_key_here
    ```
+   
+   **⚠️ Security Note:**
+   - `.env.local` is automatically ignored by git (never committed)
+   - Never commit API keys to version control
+   - For deployment (Vercel/Netlify), add `GROQ_API_KEY` to environment variables in dashboard
+   - Get a free Groq API key at: https://console.groq.com/
 
 4. **Start the development server**
    ```bash
