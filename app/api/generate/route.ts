@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { orchestrateGeneration } from '@/lib/agents/orchestrator';
+import { orchestrateGeneration, orchestrateModification } from '@/lib/agents/orchestrator';
 import { versionStore } from '@/lib/version-store';
 import { sanitizeUserInput } from '@/lib/validators/component-validator';
 
@@ -8,7 +8,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userIntent } = body;
+    const { userIntent, existingCode, existingPlan } = body;
 
     if (!userIntent || typeof userIntent !== 'string') {
       return NextResponse.json(
@@ -20,8 +20,13 @@ export async function POST(request: NextRequest) {
     // Sanitize input to prevent prompt injection
     const sanitizedIntent = sanitizeUserInput(userIntent);
 
+    // Determine if this is a modification or fresh generation
+    const isModification = existingCode && existingPlan;
+
     // Orchestrate the generation through all three agents
-    const result = await orchestrateGeneration(sanitizedIntent);
+    const result = isModification
+      ? await orchestrateModification(sanitizedIntent, existingCode, existingPlan)
+      : await orchestrateGeneration(sanitizedIntent);
 
     if (!result.success) {
       return NextResponse.json(
@@ -39,7 +44,7 @@ export async function POST(request: NextRequest) {
       result.plan!,
       result.code!,
       result.explanation,
-      false
+      isModification
     );
 
     return NextResponse.json({
@@ -51,6 +56,7 @@ export async function POST(request: NextRequest) {
         plan: version.plan,
       },
       warnings: result.warnings,
+      isModification,
     });
   } catch (error: any) {
     console.error('Generate API Error:', error);

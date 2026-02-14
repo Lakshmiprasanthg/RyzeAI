@@ -67,15 +67,26 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      // Always use generate - simpler and no 404 errors
+      // Check if we have existing code/plan for modification
+      const isModification = currentCode && currentPlan;
+      
+      // Build request payload
+      const payload: any = {
+        userIntent: userMessage,
+      };
+      
+      // If we have existing context, send it for modification
+      if (isModification) {
+        payload.existingCode = currentCode;
+        payload.existingPlan = currentPlan;
+      }
+
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          userIntent: userMessage,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -100,10 +111,11 @@ export default function Home() {
         setCurrentExplanation(newVersion.explanation);
         setCurrentVersionId(newVersion.id);
 
-        // Add success message
+        // Add success message with modification indicator
+        const actionText = data.isModification ? '🔄 Modified UI' : '✨ Generated UI';
         const assistantMsg: Message = {
           role: 'assistant',
-          content: `✅ ${data.version.explanation?.summary || 'UI generated successfully'}`,
+          content: `${actionText}: ${data.version.explanation?.summary || 'Successfully completed'}`,
           timestamp: Date.now(),
         };
         setMessages(prev => [...prev, assistantMsg]);
@@ -205,6 +217,24 @@ export default function Home() {
     }
   };
 
+  const handleStartFresh = () => {
+    if (!currentCode) return;
+    
+    if (confirm('Start fresh? This will clear the current UI context. Your version history will be preserved.')) {
+      setCurrentCode('');
+      setCurrentPlan(undefined);
+      setCurrentExplanation(undefined);
+      setCurrentVersionId(undefined);
+
+      const systemMsg: Message = {
+        role: 'assistant',
+        content: '🆕 Started fresh - next prompt will create a new UI',
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, systemMsg]);
+    }
+  };
+
   return (
     <ErrorBoundary>
     <div className="h-screen flex flex-col bg-gray-100">
@@ -217,16 +247,27 @@ export default function Home() {
           </div>
           <div className="flex items-center space-x-3">
             {currentCode && (
-              <button
-                onClick={handleRegenerate}
-                disabled={isLoading}
-                className="px-4 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition-colors"
-              >
-                🔄 Regenerate
-              </button>
+              <>
+                <button
+                  onClick={handleStartFresh}
+                  disabled={isLoading}
+                  className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 transition-colors"
+                  title="Clear current context and start a new UI"
+                >
+                  🆕 Start Fresh
+                </button>
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isLoading}
+                  className="px-4 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-300 transition-colors"
+                  title="Regenerate the last prompt"
+                >
+                  🔄 Regenerate
+                </button>
+              </>
             )}
             <a
-              href="https://github.com"
+              href="https://github.com/Lakshmiprasanthg/RyzeAI.git"
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 text-sm bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors"
